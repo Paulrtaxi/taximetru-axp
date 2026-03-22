@@ -171,6 +171,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-
     Harta se încarcă după pornire GPS...
   </div>
   <div class="map-overlay" id="mapOverlay">0 puncte</div>
+<button onclick="centerMap()" style="position:absolute;bottom:8px;right:8px;background:rgba(10,10,15,.85);border:1px solid #1e1e2e;color:#34d186;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;z-index:1000;">📍 Localizează</button>
 </div>
 
 <!-- BUTOANE -->
@@ -223,6 +224,12 @@ let lastPos = null;
 let speedHistory = [];
 let speedMax = 0;
 let secondsTotal = 0;
+
+function centerMap() {
+  if(!lastPos) { showToast('GPS nu are fix încă...'); return; }
+  if(map) map.setView([lastPos.lat, lastPos.lng], 16);
+  else initMap(lastPos.lat, lastPos.lng);
+}
 
 function initMap(lat, lng) {
   if(map) return;
@@ -380,7 +387,14 @@ function startGPS() {
         }
         updateMap(lat, lng);
       }
+      if(!lastPos && !map) {
+        initMap(lat, lng);
+      }
       lastPos = {lat, lng};
+      if(map && !activ) {
+        marker.setLatLng([lat, lng]);
+        map.setView([lat, lng], map.getZoom());
+      }
     },
     err => {
       document.getElementById('gpsDot').className = 'gps-dot err';

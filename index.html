@@ -66,7 +66,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-
 
 /* HARTA */
 .map-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;height:220px;position:relative}
-#map{width:100%;height:100%}
+#map{width:100%;height:220px;z-index:1}
 .map-overlay{position:absolute;top:8px;right:8px;background:rgba(10,10,15,.8);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:11px;color:var(--muted)}
 
 /* BUTOANE */
@@ -170,7 +170,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-
   <div id="map" style="background:#13131a;display:flex;align-items:center;justify-content:center;color:#6b6b80;font-size:12px">
     Harta se încarcă după pornire GPS...
   </div>
-  <div class="map-overlay" id="mapOverlay">0 puncte</div>
+  <div class="map-overlay" id="mapOverlay" style="display:none">0 puncte</div>
 <button onclick="centerMap()" style="position:absolute;bottom:8px;right:8px;background:rgba(10,10,15,.85);border:1px solid #1e1e2e;color:#34d186;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;z-index:1000;">📍 Localizează</button>
 </div>
 
@@ -238,6 +238,7 @@ function initMap(lat, lng) {
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
   polyline = L.polyline([], {color:'#34d186', weight:4}).addTo(map);
   marker = L.circleMarker([lat, lng], {radius:8, fillColor:'#34d186', color:'#0a0a0f', weight:2, fillOpacity:1}).addTo(map);
+  setTimeout(() => { map.invalidateSize(); map.setView([lat, lng], 15); }, 100);
 }
 
 function updateMap(lat, lng) {

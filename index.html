@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Taximetru AXP</title>
 <link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
 :root {
@@ -65,8 +66,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-
 .pret-stat-label{font-size:9px;color:var(--muted);margin-top:2px}
 
 /* HARTA */
-.map-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;height:220px;position:relative}
-#map{width:100%;height:220px;z-index:1}
+.map-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:16px;height:220px;position:relative}
+#map{width:100%;height:220px;border-radius:14px}
 .map-overlay{position:absolute;top:8px;right:8px;background:rgba(10,10,15,.8);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:11px;color:var(--muted)}
 
 /* BUTOANE */
@@ -92,10 +93,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-
 .sumar-row:last-child{border-bottom:none}
 .sumar-key{color:var(--muted)}
 .sumar-val{font-weight:500;color:var(--text)}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e1e2e;border:1px solid var(--red);color:var(--text);padding:12px 20px;border-radius:12px;font-size:13px;z-index:9999;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.warn{border-color:var(--yellow)}
+.toast.ok{border-color:var(--green)}
 </style>
 </head>
 <body>
 
+<div class="toast" id="toast"></div>
 <div class="header">
   <div class="logo">⚡ TAXIMETRU AXP</div>
   <div class="subtitle">Toyota Auris — Bolt Fleet</div>
@@ -167,11 +175,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-
 
 <!-- HARTA -->
 <div class="map-section">
-  <div id="map" style="background:#13131a;display:flex;align-items:center;justify-content:center;color:#6b6b80;font-size:12px">
-    Harta se încarcă după pornire GPS...
-  </div>
-  <div class="map-overlay" id="mapOverlay" style="display:none">0 puncte</div>
-<button onclick="centerMap()" style="position:absolute;bottom:8px;right:8px;background:rgba(10,10,15,.85);border:1px solid #1e1e2e;color:#34d186;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;z-index:1000;">📍 Localizează</button>
+  <div id="map"></div>
+  <div id="mapPlaceholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#13131a;color:#6b6b80;font-size:12px;pointer-events:none;z-index:0">Harta se încarcă după pornire GPS...</div>
+  <div class="map-overlay" id="mapOverlay">0 puncte</div>
+  <button onclick="if(map){map.invalidateSize(true);if(lastPos)map.setView([lastPos.lat,lastPos.lng],15);}" style="position:absolute;bottom:8px;right:8px;background:rgba(10,10,15,.9);border:1px solid var(--bolt);color:var(--bolt);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;z-index:999;font-family:'DM Mono',monospace">📍 Localizează</button>
 </div>
 
 <!-- BUTOANE -->
@@ -196,21 +203,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-function showToast(msg, color='var(--bolt)') {
-  let t = document.getElementById('appToast');
-  if(!t) {
-    t = document.createElement('div');
-    t.id = 'appToast';
-    t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;opacity:0;transition:opacity .3s;z-index:9999;white-space:nowrap;pointer-events:none;';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.style.background = color;
-  t.style.color = color === 'var(--green)' ? '#000' : '#fff';
-  t.style.opacity = '1';
-  setTimeout(() => t.style.opacity = '0', 3000);
-}
-
 let activ = false;
 let startTime = null;
 let timerInterval = null;
@@ -225,20 +217,21 @@ let speedHistory = [];
 let speedMax = 0;
 let secondsTotal = 0;
 
-function centerMap() {
-  if(!lastPos) { showToast('GPS nu are fix încă...'); return; }
-  if(map) map.setView([lastPos.lat, lastPos.lng], 16);
-  else initMap(lastPos.lat, lastPos.lng);
-}
-
 function initMap(lat, lng) {
   if(map) return;
-  document.getElementById('map').innerHTML = '';
+  const mapEl = document.getElementById('map');
+  mapEl.innerHTML = '';
   map = L.map('map', {zoomControl:false, attributionControl:false}).setView([lat, lng], 15);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    subdomains: 'abcd'
+  }).addTo(map);
   polyline = L.polyline([], {color:'#34d186', weight:4}).addTo(map);
   marker = L.circleMarker([lat, lng], {radius:8, fillColor:'#34d186', color:'#0a0a0f', weight:2, fillOpacity:1}).addTo(map);
-  setTimeout(() => { map.invalidateSize(); map.setView([lat, lng], 15); }, 100);
+  const ph = document.getElementById('mapPlaceholder');
+  if(ph) ph.style.display = 'none';
+  setTimeout(() => { map.invalidateSize(true); map.setView([lat,lng],15); }, 200);
+  setTimeout(() => { map.invalidateSize(true); }, 600);
 }
 
 function updateMap(lat, lng) {
@@ -249,6 +242,8 @@ function updateMap(lat, lng) {
   map.setView(latlng, map.getZoom());
   puncte.push(latlng);
   document.getElementById('mapOverlay').textContent = puncte.length + ' puncte';
+  // Verifica periodic daca harta e corect dimensionata
+  if(puncte.length % 10 === 0) map.invalidateSize();
 }
 
 function calcDist(lat1, lon1, lat2, lon2) {
@@ -283,9 +278,18 @@ function formatTime(s) {
   return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
 }
 
+function showToast(msg, type='err', duration=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
 function startCursa() {
   if(!lastPos) {
-    showToast('GPS nu are fix încă — pornesc fără GPS');
+    showToast('⚠️ Așteaptă fix GPS înainte de start!', 'warn');
+    return;
   }
   activ = true;
   startTime = Date.now() - secondsTotal * 1000;
@@ -388,14 +392,7 @@ function startGPS() {
         }
         updateMap(lat, lng);
       }
-      if(!lastPos && !map) {
-        initMap(lat, lng);
-      }
       lastPos = {lat, lng};
-      if(map && !activ) {
-        marker.setLatLng([lat, lng]);
-        map.setView([lat, lng], map.getZoom());
-      }
     },
     err => {
       document.getElementById('gpsDot').className = 'gps-dot err';

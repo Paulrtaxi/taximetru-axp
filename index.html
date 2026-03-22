@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Taximetru AXP</title>
+<link rel="manifest" href="manifest.json">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
+:root {
+  --bg:#0a0a0f; --surface:#13131a; --border:#1e1e2e;
+  --green:#00e676; --yellow:#ffd600; --red:#ff3d57;
+  --text:#e8e8f0; --muted:#6b6b80; --bolt:#34d186;
+  --blue:#4285f4;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;padding:16px;user-select:none}
+
+.header{text-align:center;margin-bottom:20px}
+.logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--bolt),#00b4d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* STATUS */
+.status-bar{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px}
+.status-dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.status-dot.activ{background:var(--green);animation:blink 1s infinite}
+.status-dot.pauza{background:var(--yellow)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.status-text{font-size:13px;color:var(--muted)}
+
+/* METRICI PRINCIPALE */
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
+.metric-val{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;line-height:1;margin-bottom:4px}
+.metric-label{font-size:10px;color:var(--muted);letter-spacing:.5px}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.green{color:var(--green)} .yellow{color:var(--yellow)} .blue{color:var(--blue)} .bolt{color:var(--bolt)}
+
+/* CARD MARE TIMP */
+.time-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;margin-bottom:10px}
+.time-val{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:2px;color:var(--text)}
+.time-label{font-size:10px;color:var(--muted);letter-spacing:.5px}
+
+/* VITEZA */
+.speed-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.speed-left{text-align:center}
+.speed-val{font-family:'Syne',sans-serif;font-size:42px;font-weight:800;color:var(--bolt)}
+.speed-unit{font-size:10px;color:var(--muted);letter-spacing:.5px}
+.speed-right{text-align:right}
+.speed-sub-val{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--muted)}
+.speed-sub-label{font-size:10px;color:var(--muted)}
+
+/* PRET */
+.pret-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px}
+.pret-header{font-size:11px;color:var(--muted);margin-bottom:12px;letter-spacing:.5px}
+.pret-input-row{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.pret-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:16px;outline:none;text-align:center}
+.pret-input:focus{border-color:var(--bolt)}
+.pret-label{font-size:11px;color:var(--muted);min-width:30px}
+.pret-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pret-stat{background:var(--bg);border-radius:10px;padding:10px;text-align:center}
+.pret-stat-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--yellow)}
+.pret-stat-label{font-size:9px;color:var(--muted);margin-top:2px}
+
+/* HARTA */
+.map-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;height:220px;position:relative}
+#map{width:100%;height:100%}
+.map-overlay{position:absolute;top:8px;right:8px;background:rgba(10,10,15,.8);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:11px;color:var(--muted)}
+
+/* BUTOANE */
+.btn-row{display:flex;gap:10px;margin-bottom:16px}
+.btn{flex:1;border:none;border-radius:14px;padding:18px;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.97)}
+.btn-start{background:var(--green);color:#000}
+.btn-stop{background:var(--red);color:#fff}
+.btn-reset{background:var(--surface);color:var(--muted);border:1px solid var(--border)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* GPS STATUS */
+.gps-bar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--surface);border-radius:10px;border:1px solid var(--border)}
+.gps-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.gps-dot.ok{background:var(--green)}
+.gps-dot.err{background:var(--red)}
+
+/* SUMAR FINAL */
+.sumar{display:none;background:var(--surface);border:1px solid var(--bolt);border-radius:14px;padding:16px;margin-bottom:16px}
+.sumar.show{display:block}
+.sumar-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--bolt);margin-bottom:12px;text-align:center}
+.sumar-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.sumar-row:last-child{border-bottom:none}
+.sumar-key{color:var(--muted)}
+.sumar-val{font-weight:500;color:var(--text)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">⚡ TAXIMETRU AXP</div>
+  <div class="subtitle">Toyota Auris — Bolt Fleet</div>
+</div>
+
+<div class="gps-bar">
+  <div class="gps-dot" id="gpsDot"></div>
+  <span id="gpsText">GPS: inițializare...</span>
+</div>
+
+<div class="status-bar">
+  <div class="status-dot" id="statusDot"></div>
+  <span class="status-text" id="statusText">Pregătit</span>
+</div>
+
+<!-- TIMP -->
+<div class="time-card">
+  <div class="time-val" id="timeVal">00:00</div>
+  <div class="time-label">TIMP CURSĂ</div>
+</div>
+
+<!-- DISTANTA + PRET/KM -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-val green" id="distVal">0.000</div>
+    <div class="metric-label">KILOMETRI</div>
+    <div class="metric-sub" id="metriVal">0 m</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val yellow" id="pretKmVal">—</div>
+    <div class="metric-label">LEI / KM</div>
+    <div class="metric-sub" id="pretMinVal">— lei/min</div>
+  </div>
+</div>
+
+<!-- VITEZA -->
+<div class="speed-card">
+  <div class="speed-left">
+    <div class="speed-val" id="speedVal">0</div>
+    <div class="speed-unit">KM/H CURENT</div>
+  </div>
+  <div class="speed-right">
+    <div class="speed-sub-val" id="speedMaxVal">0</div>
+    <div class="speed-sub-label">max km/h</div>
+    <div class="speed-sub-val" id="speedAvgVal" style="margin-top:8px">0</div>
+    <div class="speed-sub-label">med km/h</div>
+  </div>
+</div>
+
+<!-- PRET -->
+<div class="pret-section">
+  <div class="pret-header">PREȚ CURSĂ (introdu la final sau pe parcurs)</div>
+  <div class="pret-input-row">
+    <span class="pret-label">Net</span>
+    <input type="number" id="pretInput" class="pret-input" placeholder="0.00" step="0.1" min="0">
+    <span class="pret-label">LEI</span>
+  </div>
+  <div class="pret-stats">
+    <div class="pret-stat">
+      <div class="pret-stat-val" id="calcPretKm">—</div>
+      <div class="pret-stat-label">LEI/KM NET</div>
+    </div>
+    <div class="pret-stat">
+      <div class="pret-stat-val" id="calcPretMin">—</div>
+      <div class="pret-stat-label">LEI/MIN NET</div>
+    </div>
+  </div>
+</div>
+
+<!-- HARTA -->
+<div class="map-section">
+  <div id="map" style="background:#13131a;display:flex;align-items:center;justify-content:center;color:#6b6b80;font-size:12px">
+    Harta se încarcă după pornire GPS...
+  </div>
+  <div class="map-overlay" id="mapOverlay">0 puncte</div>
+</div>
+
+<!-- BUTOANE -->
+<div class="btn-row">
+  <button class="btn btn-start" id="btnStart" onclick="startCursa()">▶ Start</button>
+  <button class="btn btn-stop" id="btnStop" onclick="stopCursa()" disabled>■ Stop</button>
+  <button class="btn btn-reset" id="btnReset" onclick="resetCursa()">↺</button>
+</div>
+
+<!-- SUMAR FINAL -->
+<div class="sumar" id="sumar">
+  <div class="sumar-title">✅ Sumar cursă</div>
+  <div class="sumar-row"><span class="sumar-key">Distanță</span><span class="sumar-val" id="sDistanta">—</span></div>
+  <div class="sumar-row"><span class="sumar-key">Timp total</span><span class="sumar-val" id="sTimp">—</span></div>
+  <div class="sumar-row"><span class="sumar-key">Viteză medie</span><span class="sumar-val" id="sVitMed">—</span></div>
+  <div class="sumar-row"><span class="sumar-key">Viteză max</span><span class="sumar-val" id="sVitMax">—</span></div>
+  <div class="sumar-row"><span class="sumar-key">Preț net</span><span class="sumar-val" id="sPret">—</span></div>
+  <div class="sumar-row"><span class="sumar-key">Lei/km</span><span class="sumar-val" id="sLeiKm">—</span></div>
+  <div class="sumar-row"><span class="sumar-key">Lei/min</span><span class="sumar-val" id="sLeiMin">—</span></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+function showToast(msg, color='var(--bolt)') {
+  let t = document.getElementById('appToast');
+  if(!t) {
+    t = document.createElement('div');
+    t.id = 'appToast';
+    t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;opacity:0;transition:opacity .3s;z-index:9999;white-space:nowrap;pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = color;
+  t.style.color = color === 'var(--green)' ? '#000' : '#fff';
+  t.style.opacity = '1';
+  setTimeout(() => t.style.opacity = '0', 3000);
+}
+
+let activ = false;
+let startTime = null;
+let timerInterval = null;
+let watchId = null;
+let map = null;
+let polyline = null;
+let marker = null;
+let puncte = [];
+let distantaTotal = 0;
+let lastPos = null;
+let speedHistory = [];
+let speedMax = 0;
+let secondsTotal = 0;
+
+function initMap(lat, lng) {
+  if(map) return;
+  document.getElementById('map').innerHTML = '';
+  map = L.map('map', {zoomControl:false, attributionControl:false}).setView([lat, lng], 15);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+  polyline = L.polyline([], {color:'#34d186', weight:4}).addTo(map);
+  marker = L.circleMarker([lat, lng], {radius:8, fillColor:'#34d186', color:'#0a0a0f', weight:2, fillOpacity:1}).addTo(map);
+}
+
+function updateMap(lat, lng) {
+  if(!map) { initMap(lat, lng); return; }
+  const latlng = [lat, lng];
+  marker.setLatLng(latlng);
+  polyline.addLatLng(latlng);
+  map.setView(latlng, map.getZoom());
+  puncte.push(latlng);
+  document.getElementById('mapOverlay').textContent = puncte.length + ' puncte';
+}
+
+function calcDist(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+    Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function updatePret() {
+  const pret = parseFloat(document.getElementById('pretInput').value) || 0;
+  const km = distantaTotal / 1000;
+  const min = secondsTotal / 60;
+  if(pret > 0 && km > 0) {
+    document.getElementById('calcPretKm').textContent = (pret/km).toFixed(2);
+    document.getElementById('pretKmVal').textContent = (pret/km).toFixed(2);
+  }
+  if(pret > 0 && min > 0) {
+    document.getElementById('calcPretMin').textContent = (pret/min).toFixed(2);
+    document.getElementById('pretMinVal').textContent = (pret/min).toFixed(2) + ' lei/min';
+  }
+}
+
+function formatTime(s) {
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sec = s%60;
+  if(h > 0) return h+'h '+String(m).padStart(2,'0')+'m';
+  return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+}
+
+function startCursa() {
+  if(!lastPos) {
+    showToast('GPS nu are fix încă — pornesc fără GPS');
+  }
+  activ = true;
+  startTime = Date.now() - secondsTotal * 1000;
+  document.getElementById('btnStart').disabled = true;
+  document.getElementById('btnStop').disabled = false;
+  document.getElementById('statusDot').className = 'status-dot activ';
+  document.getElementById('statusText').textContent = 'Cursă activă';
+  document.getElementById('sumar').classList.remove('show');
+
+  timerInterval = setInterval(() => {
+    secondsTotal = Math.floor((Date.now() - startTime) / 1000);
+    document.getElementById('timeVal').textContent = formatTime(secondsTotal);
+    updatePret();
+  }, 1000);
+}
+
+function stopCursa() {
+  activ = false;
+  clearInterval(timerInterval);
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnStop').disabled = true;
+  document.getElementById('statusDot').className = 'status-dot pauza';
+  document.getElementById('statusText').textContent = 'Cursă finalizată';
+
+  const km = distantaTotal / 1000;
+  const min = secondsTotal / 60;
+  const pret = parseFloat(document.getElementById('pretInput').value) || 0;
+  const vitMed = speedHistory.length ? speedHistory.reduce((a,b)=>a+b,0)/speedHistory.length : 0;
+
+  document.getElementById('sDistanta').textContent = km.toFixed(3) + ' km (' + Math.round(distantaTotal) + ' m)';
+  document.getElementById('sTimp').textContent = formatTime(secondsTotal);
+  document.getElementById('sVitMed').textContent = vitMed.toFixed(1) + ' km/h';
+  document.getElementById('sVitMax').textContent = speedMax.toFixed(1) + ' km/h';
+  document.getElementById('sPret').textContent = pret > 0 ? pret.toFixed(2) + ' LEI' : 'neintrodusă';
+  document.getElementById('sLeiKm').textContent = (pret > 0 && km > 0) ? (pret/km).toFixed(2) + ' lei/km' : '—';
+  document.getElementById('sLeiMin').textContent = (pret > 0 && min > 0) ? (pret/min).toFixed(2) + ' lei/min' : '—';
+  document.getElementById('sumar').classList.add('show');
+}
+
+function resetCursa() {
+  if(activ) stopCursa();
+  activ = false;
+  secondsTotal = 0;
+  distantaTotal = 0;
+  lastPos = null;
+  speedHistory = [];
+  speedMax = 0;
+  puncte = [];
+  document.getElementById('timeVal').textContent = '00:00';
+  document.getElementById('distVal').textContent = '0.000';
+  document.getElementById('metriVal').textContent = '0 m';
+  document.getElementById('speedVal').textContent = '0';
+  document.getElementById('speedMaxVal').textContent = '0';
+  document.getElementById('speedAvgVal').textContent = '0';
+  document.getElementById('pretKmVal').textContent = '—';
+  document.getElementById('pretMinVal').textContent = '— lei/min';
+  document.getElementById('calcPretKm').textContent = '—';
+  document.getElementById('calcPretMin').textContent = '—';
+  document.getElementById('statusDot').className = 'status-dot';
+  document.getElementById('statusText').textContent = 'Pregătit';
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnStop').disabled = true;
+  document.getElementById('sumar').classList.remove('show');
+  if(polyline) polyline.setLatLngs([]);
+}
+
+// GPS
+function startGPS() {
+  if(!navigator.geolocation) {
+    document.getElementById('gpsText').textContent = 'GPS: nu este suportat';
+    document.getElementById('gpsDot').className = 'gps-dot err';
+    return;
+  }
+  watchId = navigator.geolocation.watchPosition(
+    pos => {
+      const {latitude:lat, longitude:lng, speed, accuracy} = pos.coords;
+      const spd = speed ? Math.round(speed * 3.6) : 0;
+
+      document.getElementById('gpsDot').className = 'gps-dot ok';
+      document.getElementById('gpsText').textContent = `GPS: fix (±${Math.round(accuracy)}m)`;
+      document.getElementById('speedVal').textContent = spd;
+
+      if(activ) {
+        if(lastPos) {
+          const d = calcDist(lastPos.lat, lastPos.lng, lat, lng);
+          if(d > 2) {
+            distantaTotal += d;
+            document.getElementById('distVal').textContent = (distantaTotal/1000).toFixed(3);
+            document.getElementById('metriVal').textContent = Math.round(distantaTotal) + ' m';
+          }
+        }
+        if(spd > 0) speedHistory.push(spd);
+        if(spd > speedMax) {
+          speedMax = spd;
+          document.getElementById('speedMaxVal').textContent = speedMax;
+        }
+        if(speedHistory.length > 0) {
+          const avg = speedHistory.reduce((a,b)=>a+b,0)/speedHistory.length;
+          document.getElementById('speedAvgVal').textContent = Math.round(avg);
+        }
+        updateMap(lat, lng);
+      }
+      lastPos = {lat, lng};
+    },
+    err => {
+      document.getElementById('gpsDot').className = 'gps-dot err';
+      document.getElementById('gpsText').textContent = 'GPS: eroare - ' + err.message;
+    },
+    {enableHighAccuracy:true, maximumAge:1000, timeout:10000}
+  );
+}
+
+// Update pret la schimbare input
+document.getElementById('pretInput').addEventListener('input', updatePret);
+
+// Start GPS automat
+startGPS();
+</script>
+</body>
+</html>

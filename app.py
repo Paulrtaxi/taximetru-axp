@@ -22,8 +22,7 @@ USER_ID           = 126684
 PRAG_MINIM_LEI_KM = 5.0
 INTERVAL_MINUTE   = 3
 PORT              = 5000
-ORS_API_KEY       = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjM4YTVjYjY1YjJjYjQzZjQ5YzQxZWM1MTkzOTM3OWIxIiwiaCI6Im11cm11cjY0In0="
-GMAPS_API_KEY     = "AIzaSyDpfsrsAOHyuoLf9fiZQl_qm6E2jOJeyIc"
+ORS_API_KEY       = "uoLf9fiZQl_qm6E2jOJeyIc"
 
 # ============================================================
 
